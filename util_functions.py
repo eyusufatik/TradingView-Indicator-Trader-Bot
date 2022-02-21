@@ -1,8 +1,8 @@
 import json
+import math
 from flask_restful import reqparse
 from binance.client import Client
 import telebot
-
 
 import configs
 
@@ -41,12 +41,20 @@ def get_account_worth():
         total = free + locked
 
         if total > 0:
-            price = float(client.get_symbol_ticker(
-                symbol=asset+"USDT")["price"])
-            sum += price * total
+            if asset != "USDT":
+                price = float(client.get_symbol_ticker(
+                    symbol=asset+"USDT")["price"])
+                sum += price * total
+            else:
+                sum += total
 
     return sum
 
+
+def round_down_step_size(number, step_size):
+    precision = int(round(-math.log(step_size, 10), 0))
+    factor = math.pow(10, precision)
+    return math.floor(number * factor)/factor
 
 def get_lot_step_size(symbol: str):
     symbol_info = symbol_infos.get(symbol)
