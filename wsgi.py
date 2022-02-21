@@ -1,6 +1,5 @@
 from main import app
-
-import configs
+import os
  
 if __name__ == "__main__":
-        app.run(debug=False, use_reloader=False)
+        app.run(use_reloader=False, debug=False)

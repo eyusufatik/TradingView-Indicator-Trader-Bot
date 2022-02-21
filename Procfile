@@ -1,1 +1,1 @@
-web: python wsgi.py
+web: flask run --port $PORT
