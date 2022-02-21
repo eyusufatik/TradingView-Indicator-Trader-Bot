@@ -1,14 +1,13 @@
-from distutils.command.config import config
-import threading
 from binance.client import Client
 #from binance.helpers import round_step_size
 from binance.enums import *
 from binance import ThreadedWebsocketManager
 from threading import Lock
 from flask import Flask, request
+import os
 
 import configs
-from util_functions import get_account_worth, pretty_print, parse_webhook, get_lot_step_size, get_price_step_size, send_telegram_message, round_down_step_size
+from util_functions import get_account_worth, parse_webhook, get_lot_step_size, get_price_step_size, send_telegram_message, round_down_step_size
 
 mutex = Lock()
 
@@ -17,8 +16,12 @@ client = Client(configs.API_KEY, configs.API_SECRET)
 twm = ThreadedWebsocketManager(
     api_key=configs.API_KEY, api_secret=configs.API_SECRET)
 twm.start()
-
+os.environ["twm"] = "1"
 def handle_socket_message(msg):
+    if os.environ.get("twm") == 1:
+        twm.stop()
+        return
+    
     if msg["e"] == "executionReport" and msg["x"] == "TRADE" and msg["z"] == msg["q"]:
         mutex.acquire()
         if msg["S"] == "BUY":
@@ -56,7 +59,6 @@ twm.start_user_socket(callback=handle_socket_message)
 
 @app.route("/hello", methods=["GET"])
 def hello_world():
-    print(threading.active_count())
     return "Hello, World!"
 
 
