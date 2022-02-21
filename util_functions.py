@@ -1,10 +1,17 @@
 import json
 from flask_restful import reqparse
 from binance.client import Client
+import telebot
+
 
 import configs
 
 client = Client(configs.API_KEY, configs.API_SECRET)
+
+bot = telebot.TeleBot(configs.TELEGRAM_TOKEN)
+
+
+symbol_infos = {}
 
 
 webhook_parser = reqparse.RequestParser()
@@ -39,3 +46,27 @@ def get_account_worth():
             sum += price * total
 
     return sum
+
+
+def get_lot_step_size(symbol: str):
+    symbol_info = symbol_infos.get(symbol)
+
+    if symbol_info is None:
+        symbol_info = client.get_symbol_info(symbol)
+        symbol_infos[symbol] = symbol_info
+    
+    return float(symbol_info["filters"][2]["stepSize"])
+
+
+def get_price_step_size(symbol: str):
+    symbol_info = symbol_infos.get(symbol)
+
+    if symbol_info is None:
+        symbol_info = client.get_symbol_info(symbol)
+        symbol_infos[symbol] = symbol_info
+    
+    return float(symbol_info["filters"][0]["tickSize"])
+
+
+def send_telegram_message(msg: str):
+    bot.send_message(-725645043, msg)
