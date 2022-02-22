@@ -14,14 +14,10 @@ mutex = Lock()
 app = Flask(__name__)
 client = Client(configs.API_KEY, configs.API_SECRET)
 twm = ThreadedWebsocketManager(
-    api_key=configs.API_KEY, api_secret=configs.API_SECRET)
-twm.start()
-os.environ["twm"] = "1"
+        api_key=configs.API_KEY, api_secret=configs.API_SECRET)
+
+
 def handle_socket_message(msg):
-    if os.environ.get("twm") == 1:
-        twm.stop()
-        return
-    
     if msg["e"] == "executionReport" and msg["x"] == "TRADE" and msg["z"] == msg["q"]:
         mutex.acquire()
         if msg["S"] == "BUY":
@@ -35,7 +31,8 @@ def handle_socket_message(msg):
             try:
                 quantity = float(client.get_asset_balance(
                     asset=msg["s"].removesuffix("USDT"))["free"])
-                quantity = round_down_step_size(quantity, get_lot_step_size(msg["s"]))
+                quantity = round_down_step_size(
+                    quantity, get_lot_step_size(msg["s"]))
                 client.order_limit_sell(
                     symbol=symbol, quantity=quantity, price=sell_price)
             except Exception as e:
@@ -54,9 +51,6 @@ def handle_socket_message(msg):
         mutex.release()
 
 
-twm.start_user_socket(callback=handle_socket_message)
-
-
 @app.route("/hello", methods=["GET"])
 def hello_world():
     return "Hello, World!"
@@ -73,6 +67,10 @@ def tradingview_hook():
 
     if passphrase != configs.TV_PASS:
         return {"msg": "wrong passphrase"}, 400
+
+    if not twm.is_alive():
+        twm.start()
+        twm.start_user_socket(callback=handle_socket_message)
 
     if side == "BUY":
         account_worth = get_account_worth()
@@ -127,5 +125,4 @@ def tradingview_hook():
                 send_telegram_message(
                     f"Sent sell order: {ticker} @{order_price:.2f} size: ${(asset_amount*order_price):.2f}")
         mutex.release()
-
     return {"msg": "Thx."}, 200
