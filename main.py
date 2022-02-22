@@ -31,10 +31,11 @@ def handle_socket_message(msg):
             try:
                 quantity = float(client.get_asset_balance(
                     asset=msg["s"].removesuffix("USDT"))["free"])
-                quantity = round_down_step_size(
-                    quantity, get_lot_step_size(msg["s"]))
-                client.order_limit_sell(
-                    symbol=symbol, quantity=quantity, price=sell_price)
+                if quantity > 0:
+                    quantity = round_down_step_size(
+                        quantity, get_lot_step_size(msg["s"]))
+                    client.order_limit_sell(
+                        symbol=symbol, quantity=quantity, price=sell_price)
             except Exception as e:
                 send_telegram_message(f"Exception in bot:\n{e.message}")
                 print(e.message)
@@ -75,14 +76,14 @@ def tradingview_hook():
     if side == "BUY":
         account_worth = get_account_worth()
         free_usdt = float(client.get_asset_balance(asset="USDT")["free"])
-        if free_usdt >= account_worth / 8:
+        if free_usdt >= account_worth / configs.POS_DIVIDER:
             # current_price = float(
             #     client.get_symbol_ticker(symbol=ticker)["price"])
             current_price = float(bar["close"])
             order_price = round_down_step_size(
                 current_price * configs.BUY_DOWN, get_price_step_size(ticker))  # current_price * 0,99
             order_amount = round_down_step_size(
-                (account_worth/8)/order_price, get_lot_step_size(ticker))
+                (account_worth/configs.POS_DIVIDER)/order_price, get_lot_step_size(ticker))
             if order_amount > 0:
                 mutex.acquire()
                 try:

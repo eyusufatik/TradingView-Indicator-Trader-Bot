@@ -12,3 +12,4 @@ DEBUG = os.environ.get("DEBUG") == "1"
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 BUY_DOWN = float(os.environ.get("BUY_DOWN"))
 SELL_UP = float(os.environ.get("SELL_UP"))
+POS_DIVIDER = float(os.environ.get("POS_DIVIDER"))
