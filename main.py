@@ -27,7 +27,7 @@ def handle_socket_message(msg):
             send_telegram_message(
                 f"Buy order filled: {symbol} @{buy_price:.2f} size: ${size:.2f}")
             sell_price = round_down_step_size(
-                buy_price * 1.29, get_price_step_size(symbol))
+                buy_price * configs.SELL_UP, get_price_step_size(symbol))
             try:
                 quantity = float(client.get_asset_balance(
                     asset=msg["s"].removesuffix("USDT"))["free"])
@@ -76,10 +76,11 @@ def tradingview_hook():
         account_worth = get_account_worth()
         free_usdt = float(client.get_asset_balance(asset="USDT")["free"])
         if free_usdt >= account_worth / 8:
-            current_price = float(
-                client.get_symbol_ticker(symbol=ticker)["price"])
+            # current_price = float(
+            #     client.get_symbol_ticker(symbol=ticker)["price"])
+            current_price = float(bar["close"])
             order_price = round_down_step_size(
-                current_price, get_price_step_size(ticker))  # current_price * 0,99
+                current_price * configs.BUY_DOWN, get_price_step_size(ticker))  # current_price * 0,99
             order_amount = round_down_step_size(
                 (account_worth/8)/order_price, get_lot_step_size(ticker))
             if order_amount > 0:
