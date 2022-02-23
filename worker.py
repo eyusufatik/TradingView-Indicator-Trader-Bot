@@ -1,6 +1,7 @@
 from binance.client import Client
 from binance import ThreadedWebsocketManager
 from binance.helpers import round_step_size
+import redis
 
 from util_functions import round_down_step_size, get_lot_step_size, get_price_step_size, send_telegram_message
 import configs
@@ -8,8 +9,21 @@ import configs
 client = Client(configs.API_KEY, configs.API_SECRET)
 twm = ThreadedWebsocketManager(
         api_key=configs.API_KEY, api_secret=configs.API_SECRET)
+r = redis.from_url(configs.REDIS_URL)
+p = r.pubsub()
+p.subscribe("trade-multiplier-update")
+p.get_message()
 
+# TODO: better telegram messages with formatting and stuff
 def handle_socket_message(msg):
+    redis_message = p.get_message()
+    while not redis_message is None:
+        if redis_message["data"] == b"buy-down-updated":
+            configs.BUY_DOWN = float(r.get("BUY_DOWN"))
+        elif redis_message["data"] == b"sell-up-updated":
+            configs.SELL_UP = float(r.get("SELL_UP"))
+        redis_message = p.get_message()
+        print(configs.SELL_UP, configs.BUY_DOWN)
     if msg["e"] == "executionReport" and msg["x"] == "TRADE" and msg["z"] == msg["q"]:
         if msg["S"] == "BUY":
             symbol = msg["s"]

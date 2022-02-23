@@ -20,6 +20,9 @@ webhook_parser.add_argument("time", type=str)
 webhook_parser.add_argument("side", type=str)
 webhook_parser.add_argument("ticker", type=str)
 webhook_parser.add_argument("bar", type=dict)
+webhook_parser.add_argument("buyDown", type=float)
+webhook_parser.add_argument("sellUp", type=float)
+
 
 
 def pretty_print(dic: dict):

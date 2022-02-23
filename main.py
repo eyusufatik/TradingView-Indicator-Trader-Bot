@@ -1,11 +1,10 @@
+from crypt import methods
 from binance.client import Client
-#from binance.helpers import round_step_size
 from binance.enums import *
 from binance.helpers import round_step_size
-from binance import ThreadedWebsocketManager
 from threading import Lock
 from flask import Flask, request
-import os
+import redis
 
 import configs
 from util_functions import get_account_worth, parse_webhook, get_lot_step_size, get_price_step_size, send_telegram_message, round_down_step_size
@@ -14,12 +13,53 @@ mutex = Lock()
 
 app = Flask(__name__)
 client = Client(configs.API_KEY, configs.API_SECRET)
+r = redis.from_url(configs.REDIS_URL)
+p = r.pubsub()
+p.subscribe("trade-multiplier-update")
+
 
 
 @app.route("/hello", methods=["GET"])
 def hello_world():
     return "Hello, World!"
 
+
+@app.route("/setBuyDown", methods=["POST"])
+def set_buy_down():
+    args = parse_webhook(request)
+    passphrase = args["passphrase"]
+    buy_down = args["buyDown"]
+
+    if passphrase != configs.TV_PASS:
+        return {"msg": "wrong passphrase"}, 400
+    
+    if buy_down is None:
+        return {"msg": "buyDown field can't be empty."}, 400
+    
+    configs.BUY_DOWN = buy_down
+    r.set("BUY_DOWN", buy_down)
+    r.publish("trade-multiplier-update", "buy-down-updated")
+    
+    return {"msg": "buyDown updated"}, 200
+
+
+@app.route("/setSellUp", methods=["POST"])
+def set_sell_up():
+    args = parse_webhook(request)
+    passphrase = args["passphrase"]
+    sell_up = args["sellUp"]
+
+    if passphrase != configs.TV_PASS:
+        return {"msg": "wrong passphrase"}, 400
+
+    if sell_up is None:
+        return {"msg": "sellUp field can't be empty."}, 400
+    
+    configs.SELL_UP = sell_up
+    r.set("SELL_UP", sell_up)
+    r.publish("trade-multiplier-update", "sell-up-updated")
+    
+    return {"msg": "sellUp updated"}, 200
 
 @app.route("/webhook", methods=["POST"])
 def tradingview_hook():
@@ -30,10 +70,11 @@ def tradingview_hook():
     ticker = args["ticker"]
     bar = args["bar"]
 
+    # TODO: hashed passphares implementation
     if passphrase != configs.TV_PASS:
         return {"msg": "wrong passphrase"}, 400
 
-
+    # TODO: better telegram messages with formatting.
     if side == "BUY":
         account_worth = get_account_worth()
         free_usdt = float(client.get_asset_balance(asset="USDT")["free"])
