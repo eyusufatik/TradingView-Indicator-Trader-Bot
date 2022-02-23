@@ -39,7 +39,7 @@ def set_buy_down():
     configs.BUY_DOWN = buy_down
     r.set("BUY_DOWN", buy_down)
     r.publish("trade-multiplier-update", "buy-down-updated")
-    
+    send_telegram_message(f"Buy down set to: {buy_down}")
     return {"msg": "buyDown updated"}, 200
 
 
@@ -59,6 +59,7 @@ def set_sell_up():
     r.set("SELL_UP", sell_up)
     r.publish("trade-multiplier-update", "sell-up-updated")
     
+    send_telegram_message(f"Sell up set to: {sell_up}")
     return {"msg": "sellUp updated"}, 200
 
 @app.route("/webhook", methods=["POST"])
